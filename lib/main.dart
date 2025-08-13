@@ -133,8 +133,9 @@ class _TimerPageState extends State<TimerPage> {
     setState(() {
       _isRunning = true;
       _remainingSeconds = _hours * 3600 + _minutes * 60 + _seconds;
-      _endTime = DateTime.now().add(Duration(seconds: _remainingSeconds));
+      _endTime = DateTime.now().add(Duration(seconds: _remainingSeconds + 1));
     });
+    _updateRemainingTime(); // ← 直後に1回呼び出し
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _updateRemainingTime();
       if (_remainingSeconds <= 0) {
@@ -187,9 +188,12 @@ class _TimerPageState extends State<TimerPage> {
   }
 
   void _showAlert() async {
-    // バイブレーション
+    // バイブレーション（5回繰り返し）
     if (await Vibration.hasVibrator()) {
-      Vibration.vibrate(duration: 500);
+      for (int i = 0; i < 5; i++) {
+        Vibration.vibrate(duration: 200);
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
     }
     // 時間入力画面に戻す
     setState(() {

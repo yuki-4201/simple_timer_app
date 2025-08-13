@@ -5,8 +5,12 @@
 
 ## version
 
+ * ver1.0.1 : 
+     * Changed the number of vibrations when the timer ends.
+     * Minor fixes.
+
  * ver1.0.0 : 2025/08/14
-    * Only timer function released
+     * Only timer function released
 
 ## Getting Started
 
