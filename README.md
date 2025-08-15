@@ -4,8 +4,11 @@
 
 
 ## version
+ * ver1/0/2 : 2025/08/15
+      * Changed the number of vibrations when the timer ends.
+      * Disable the automatic screen off function.
 
- * ver1.0.1 : 
+ * ver1.0.1 : 2025/08/14
      * Changed the number of vibrations when the timer ends.
      * Minor fixes.
 

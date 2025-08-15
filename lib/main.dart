@@ -3,9 +3,15 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'dart:async';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  tzdata.initializeTimeZones();
   runApp(const MyApp());
 }
 
@@ -30,6 +36,31 @@ class TimerPage extends StatefulWidget {
 
 class _TimerPageState extends State<TimerPage> {
   final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  bool _notificationsInitialized = false;
+  // bool _notificationsInitialized = false;
+  // final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+
+  @override
+  void initState() {
+  super.initState();
+  _initializeNotifications();
+  }
+
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings();
+    const InitializationSettings initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
+    await _localNotifications.initialize(initSettings);
+    setState(() {
+      _notificationsInitialized = true;
+    });
+  // const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+  // const InitializationSettings initSettings = InitializationSettings(android: androidSettings);
+  // await _localNotifications.initialize(initSettings);
+  // setState(() {
+  //   _notificationsInitialized = true;
+  // });
+  }
   DateTime? _endTime;
   @override
   Widget build(BuildContext context) {
@@ -129,6 +160,8 @@ class _TimerPageState extends State<TimerPage> {
   bool _isRunning = false;
 
   void _startTimer() {
+  // タイマー開始時に画面消灯を無効化
+  WakelockPlus.enable();
     if (_isRunning || (_hours + _minutes + _seconds) == 0) return;
     setState(() {
       _isRunning = true;
@@ -143,7 +176,7 @@ class _TimerPageState extends State<TimerPage> {
         _showAlert();
       }
     });
-    _scheduleNotification(_remainingSeconds);
+  _scheduleNotification(_remainingSeconds);
   }
 
   void _updateRemainingTime() {
@@ -157,16 +190,24 @@ class _TimerPageState extends State<TimerPage> {
   }
 
   Future<void> _scheduleNotification(int seconds) async {
+    if (!_notificationsInitialized) return;
     await _localNotifications.zonedSchedule(
       0,
       'タイマー終了',
       '時間になりました',
       tz.TZDateTime.now(tz.local).add(Duration(seconds: seconds)),
       const NotificationDetails(
-        android: AndroidNotificationDetails('timer_channel', 'Timer', importance: Importance.max, priority: Priority.high),
+        android: AndroidNotificationDetails(
+          'timer_channel',
+          'Timer',
+          channelDescription: 'タイマー通知',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
       ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
+  androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+  matchDateTimeComponents: DateTimeComponents.time,
     );
   }
 
@@ -176,6 +217,8 @@ class _TimerPageState extends State<TimerPage> {
       setState(() {
         _isRunning = false;
       });
+  // タイマー停止時に画面消灯を有効化
+  WakelockPlus.disable();
     }
   }
 
@@ -185,13 +228,15 @@ class _TimerPageState extends State<TimerPage> {
       _remainingSeconds = 0;
       _isRunning = false;
     });
+  // 念のためリセット時にも画面消灯を有効化
+  WakelockPlus.disable();
   }
 
   void _showAlert() async {
     // バイブレーション（5回繰り返し）
     if (await Vibration.hasVibrator()) {
-      for (int i = 0; i < 5; i++) {
-        Vibration.vibrate(duration: 200);
+      for (int i = 0; i < 2; i++) {
+        Vibration.vibrate(duration: 100);
         await Future.delayed(const Duration(milliseconds: 200));
       }
     }
@@ -201,6 +246,8 @@ class _TimerPageState extends State<TimerPage> {
       _remainingSeconds = 0;
       _endTime = null;
     });
+  // タイマー終了時にも画面消灯を有効化
+  WakelockPlus.disable();
   }
 
   String _formatTime(int totalSeconds) {
